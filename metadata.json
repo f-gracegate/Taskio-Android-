@@ -1,0 +1,6 @@
+{
+  "name": "Taskio",
+  "description": "Premium task and project management app with progress tracking, custom date pickers, dynamic task groups, and elegant design replicating custom mockups.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
