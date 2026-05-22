@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -66,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.TaskViewModel
 import com.example.ui.TaskGroupStats
 import com.example.data.ProjectTask
+import com.example.ui.theme.glowingNeonBorder
 
 @Composable
 fun HomeScreen(
@@ -77,6 +77,7 @@ fun HomeScreen(
     val todayPercentage by viewModel.todayCompletionPercentage.collectAsState()
     val inProgressTasks by viewModel.inProgressTasks.collectAsState()
     val groupStatsList by viewModel.taskGroupStats.collectAsState()
+    val isDarkTheme by viewModel.isDarkTheme.collectAsState()
 
     var selectedTaskForDetails by remember { mutableStateOf<ProjectTask?>(null) }
 
@@ -87,6 +88,11 @@ fun HomeScreen(
             onDismissRequest = { selectedTaskForDetails = null }
         )
     }
+
+    // Dynamic styling values matching design specifications
+    val textColor = if (isDarkTheme) Color.White else Color(0xFF1E1A3D)
+    val subtextColor = if (isDarkTheme) Color(0xFFB5B3C6) else Color(0xFF8B8A99)
+    val primaryColor = if (isDarkTheme) Color(0xFFD43DFF) else Color(0xFF5C53FF)
 
     Scaffold(
         bottomBar = {
@@ -99,10 +105,13 @@ fun HomeScreen(
                         "add" -> onNavigateToAddProject()
                         "profile" -> onNavigateToProfile()
                     }
-                }
+                },
+                isDarkTheme = isDarkTheme,
+                primaryColor = primaryColor,
+                subtextColor = subtextColor
             )
         },
-        containerColor = Color(0xFFF9FAFF)
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -112,14 +121,16 @@ fun HomeScreen(
         ) {
             // 1. Header Row
             item {
-                HomeHeaderSegment()
+                HomeHeaderSegment(isDarkTheme = isDarkTheme, textColor = textColor, subtextColor = subtextColor)
             }
 
             // 2. Today Task Progress Card
             item {
                 TodayProgressCardComponent(
                     completionPercentage = todayPercentage,
-                    onViewClicked = onNavigateToTasks
+                    onViewClicked = onNavigateToTasks,
+                    isDarkTheme = isDarkTheme,
+                    primaryColor = primaryColor
                 )
             }
 
@@ -136,7 +147,7 @@ fun HomeScreen(
                         text = "In Progress",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E1A3D)
+                        color = textColor
                     )
                 }
             }
@@ -144,7 +155,7 @@ fun HomeScreen(
             // 4. Horizontal In Progress Scroll
             item {
                 if (inProgressTasks.isEmpty()) {
-                    EmptyInProgressPlaceholder()
+                    EmptyInProgressPlaceholder(isDarkTheme = isDarkTheme, subtextColor = subtextColor)
                 } else {
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 24.dp),
@@ -152,7 +163,13 @@ fun HomeScreen(
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
                         items(inProgressTasks) { task ->
-                            InProgressCardMetric(task = task, onClick = { selectedTaskForDetails = task })
+                            InProgressCardMetric(
+                                task = task,
+                                onClick = { selectedTaskForDetails = task },
+                                isDarkTheme = isDarkTheme,
+                                textColor = textColor,
+                                subtextColor = subtextColor
+                            )
                         }
                     }
                 }
@@ -171,21 +188,27 @@ fun HomeScreen(
                         text = "Task Groups",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E1A3D)
+                        color = textColor
                     )
                 }
             }
 
             // 6. Vertical list of Task Groups
             items(groupStatsList) { groupStats ->
-                TaskGroupProgressItem(groupStats = groupStats, onClick = onNavigateToTasks)
+                TaskGroupProgressItem(
+                    groupStats = groupStats,
+                    onClick = onNavigateToTasks,
+                    isDarkTheme = isDarkTheme,
+                    textColor = textColor,
+                    subtextColor = subtextColor
+                )
             }
         }
     }
 }
 
 @Composable
-fun HomeHeaderSegment() {
+fun HomeHeaderSegment(isDarkTheme: Boolean, textColor: Color, subtextColor: Color) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -194,18 +217,17 @@ fun HomeHeaderSegment() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Profile Initials avatar reflecting "GG" for GraceGate
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFEEECFF)),
+                    .background(if (isDarkTheme) Color(0xFFD43DFF).copy(alpha = 0.15f) else Color(0xFFEEECFF)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "GG",
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF5C53FF),
+                    color = if (isDarkTheme) Color(0xFFFF007F) else Color(0xFF5C53FF),
                     fontSize = 18.sp
                 )
             }
@@ -214,13 +236,13 @@ fun HomeHeaderSegment() {
                 Text(
                     text = "Hello!",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF8B8A99)
+                    color = subtextColor
                 )
                 Text(
                     text = "GraceGate",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E1A3D)
+                    color = textColor
                 )
             }
         }
@@ -229,14 +251,18 @@ fun HomeHeaderSegment() {
             onClick = { /* No-op notifications triggers */ },
             modifier = Modifier
                 .size(44.dp)
-                .background(Color.White, CircleShape)
-                .border(1.dp, Color(0xFFEEEEEE), CircleShape)
+                .background(MaterialTheme.colorScheme.surface, CircleShape)
+                .border(
+                    width = 1.dp,
+                    color = if (isDarkTheme) Color(0xFFD43DFF).copy(alpha = 0.2f) else Color(0xFFEEEEEE),
+                    shape = CircleShape
+                )
                 .testTag("notification_button")
         ) {
             Icon(
                 imageVector = Icons.Default.Notifications,
                 contentDescription = "Notifications",
-                tint = Color(0xFF1E1A3D)
+                tint = textColor
             )
         }
     }
@@ -245,17 +271,20 @@ fun HomeHeaderSegment() {
 @Composable
 fun TodayProgressCardComponent(
     completionPercentage: Int,
-    onViewClicked: () -> Unit
+    onViewClicked: () -> Unit,
+    isDarkTheme: Boolean,
+    primaryColor: Color
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 12.dp)
+            .glowingNeonBorder(isDarkTheme, shape = RoundedCornerShape(24.dp))
             .shadow(
                 elevation = 12.dp,
                 shape = RoundedCornerShape(24.dp),
-                ambientColor = Color(0x335C53FF),
-                spotColor = Color(0x335C53FF)
+                ambientColor = if (isDarkTheme) Color(0xFFFF007F).copy(alpha = 0.2f) else Color(0x335C53FF),
+                spotColor = if (isDarkTheme) Color(0xFFD43DFF).copy(alpha = 0.2f) else Color(0x335C53FF)
             )
             .testTag("today_progress_card"),
         shape = RoundedCornerShape(24.dp),
@@ -265,7 +294,11 @@ fun TodayProgressCardComponent(
             modifier = Modifier
                 .background(
                     brush = Brush.linearGradient(
-                        colors = listOf(Color(0xFF5c53FF), Color(0xFF7A70FF))
+                        colors = if (isDarkTheme) {
+                            listOf(Color(0xFF8B02BB), Color(0xFFFF007F))
+                        } else {
+                            listOf(Color(0xFF5c53FF), Color(0xFF7A70FF))
+                        }
                     )
                 )
                 .padding(24.dp)
@@ -287,7 +320,7 @@ fun TodayProgressCardComponent(
                         onClick = onViewClicked,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.White,
-                            contentColor = Color(0xFF5C53FF)
+                            contentColor = if (isDarkTheme) Color(0xFF8B02BB) else Color(0xFF5C53FF)
                         ),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -345,20 +378,23 @@ fun TodayProgressCardComponent(
 @Composable
 fun InProgressCardMetric(
     task: ProjectTask,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isDarkTheme: Boolean,
+    textColor: Color,
+    subtextColor: Color
 ) {
-    // Pick soft highlight borders matching layout screenshots
     val (borderColor, brandBg) = when (task.groupName) {
-        "Office Project" -> Pair(Color(0xFFFB6F8B), Color(0xFFFFF1F4))
-        "Personal Project" -> Pair(Color(0xFF5C53FF), Color(0xFFF0EFFF))
-        else -> Pair(Color(0xFFFFAE34), Color(0xFFFFF7EC))
+        "Office Project" -> Pair(Color(0xFFFB6F8B), if (isDarkTheme) Color(0xFF130F26) else Color(0xFFFFF1F4))
+        "Personal Project" -> Pair(Color(0xFF5C53FF), if (isDarkTheme) Color(0xFF130F26) else Color(0xFFF0EFFF))
+        else -> Pair(Color(0xFFFFAE34), if (isDarkTheme) Color(0xFF130F26) else Color(0xFFFFF7EC))
     }
 
     Card(
         modifier = Modifier
             .width(260.dp)
             .height(130.dp)
-            .border(1.dp, borderColor.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+            .glowingNeonBorder(isDarkTheme, shape = RoundedCornerShape(20.dp))
+            .border(1.dp, borderColor.copy(alpha = if (isDarkTheme) 0.5f else 0.3f), RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .testTag("in_progress_card_${task.id}"),
         shape = RoundedCornerShape(20.dp),
@@ -378,7 +414,7 @@ fun InProgressCardMetric(
                 Text(
                     text = task.groupName,
                     style = MaterialTheme.typography.labelSmall,
-                    color = borderColor,
+                    color = if (isDarkTheme && task.groupName == "Personal Project") Color(0xFFD43DFF) else borderColor,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -386,7 +422,7 @@ fun InProgressCardMetric(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(borderColor)
+                        .background(if (isDarkTheme && task.groupName == "Personal Project") Color(0xFFD43DFF) else borderColor)
                 )
             }
 
@@ -394,7 +430,7 @@ fun InProgressCardMetric(
                 text = task.title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E1A3D),
+                color = textColor,
                 maxLines = 1
             )
 
@@ -402,14 +438,14 @@ fun InProgressCardMetric(
                 Icon(
                     imageVector = Icons.Default.CalendarMonth,
                     contentDescription = "Clock inline logo",
-                    tint = Color(0xFF8B8A99),
+                    tint = subtextColor,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "${task.time}  •  ${task.dateString}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF8B8A99)
+                    color = subtextColor
                 )
             }
         }
@@ -419,23 +455,27 @@ fun InProgressCardMetric(
 @Composable
 fun TaskGroupProgressItem(
     groupStats: TaskGroupStats,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isDarkTheme: Boolean,
+    textColor: Color,
+    subtextColor: Color
 ) {
     val groupColor = Color(android.graphics.Color.parseColor(groupStats.colorHex))
     val groupBg = when (groupStats.groupName) {
-        "Office Project" -> Color(0xFFFFF1F4)
-        "Personal Project" -> Color(0xFFF0EFFF)
-        else -> Color(0xFFFFF7EC)
+        "Office Project" -> if (isDarkTheme) Color(0xFFFF007F).copy(alpha = 0.15f) else Color(0xFFFFF1F4)
+        "Personal Project" -> if (isDarkTheme) Color(0xFFD43DFF).copy(alpha = 0.15f) else Color(0xFFF0EFFF)
+        else -> if (isDarkTheme) Color(0xFFFFAE34).copy(alpha = 0.15f) else Color(0xFFFFF7EC)
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 8.dp)
+            .glowingNeonBorder(isDarkTheme, shape = RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .testTag("task_group_item_${groupStats.groupName}"),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -469,13 +509,13 @@ fun TaskGroupProgressItem(
                         text = groupStats.groupName,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E1A3D)
+                        color = textColor
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "${groupStats.totalTasks} Tasks",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFF8B8A99)
+                        color = subtextColor
                     )
                 }
             }
@@ -492,12 +532,12 @@ fun TaskGroupProgressItem(
 
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     drawCircle(
-                        color = Color(0xFFECEFF1),
+                        color = if (isDarkTheme) Color(0xFF1E173C) else Color(0xFFECEFF1),
                         radius = size.minDimension / 2,
                         style = Stroke(width = 4.dp.toPx())
                     )
                     drawArc(
-                        color = groupColor,
+                        color = if (isDarkTheme && groupStats.groupName == "Personal Project") Color(0xFFD43DFF) else groupColor,
                         startAngle = -90f,
                         sweepAngle = animatedProgress * 360f,
                         useCenter = false,
@@ -509,7 +549,7 @@ fun TaskGroupProgressItem(
                     text = "${groupStats.completionPercentage}%",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E1A3D)
+                    color = textColor
                 )
             }
         }
@@ -517,14 +557,14 @@ fun TaskGroupProgressItem(
 }
 
 @Composable
-fun EmptyInProgressPlaceholder() {
+fun EmptyInProgressPlaceholder(isDarkTheme: Boolean, subtextColor: Color) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
             .height(120.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFFF2F3F8)),
+            .background(if (isDarkTheme) Color(0xFF130F26) else Color(0xFFF2F3F8)),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -532,13 +572,13 @@ fun EmptyInProgressPlaceholder() {
                 text = "No Tasks In Progress Right Now!",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF8B8A99)
+                color = subtextColor
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Tap + to start a project",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color(0xFF8B8A99)
+                color = subtextColor
             )
         }
     }
@@ -547,9 +587,11 @@ fun EmptyInProgressPlaceholder() {
 @Composable
 fun HomeBottomNavigation(
     currentRoute: String,
-    onNavClicked: (String) -> Unit
+    onNavClicked: (String) -> Unit,
+    isDarkTheme: Boolean,
+    primaryColor: Color,
+    subtextColor: Color
 ) {
-    // Beautiful suspended container
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -561,14 +603,15 @@ fun HomeBottomNavigation(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(72.dp)
+                .glowingNeonBorder(isDarkTheme, shape = RoundedCornerShape(28.dp))
                 .shadow(
                     elevation = 16.dp,
                     shape = RoundedCornerShape(28.dp),
-                    ambientColor = Color(0x22110D2C),
-                    spotColor = Color(0x22110D2C)
+                    ambientColor = if (isDarkTheme) Color(0xFFFF007F).copy(alpha = 0.1f) else Color(0x22110D2C),
+                    spotColor = if (isDarkTheme) Color(0xFFD43DFF).copy(alpha = 0.1f) else Color(0x22110D2C)
                 )
                 .clip(RoundedCornerShape(28.dp))
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
@@ -579,7 +622,9 @@ fun HomeBottomNavigation(
                 activeIcon = Icons.Filled.Home,
                 inactiveIcon = Icons.Outlined.Home,
                 label = "Home",
-                onClick = { onNavClicked("home") }
+                onClick = { onNavClicked("home") },
+                primaryColor = primaryColor,
+                subtextColor = subtextColor
             )
 
             // Tasks/Calendar Icon
@@ -588,7 +633,9 @@ fun HomeBottomNavigation(
                 activeIcon = Icons.Filled.CalendarMonth,
                 inactiveIcon = Icons.Outlined.CalendarMonth,
                 label = "Calendar",
-                onClick = { onNavClicked("tasks") }
+                onClick = { onNavClicked("tasks") },
+                primaryColor = primaryColor,
+                subtextColor = subtextColor
             )
 
             // Dynamic Action FAB
@@ -598,7 +645,11 @@ fun HomeBottomNavigation(
                     .clip(CircleShape)
                     .background(
                         brush = Brush.radialGradient(
-                            colors = listOf(Color(0xFF5C53FF), Color(0xFF4238FF))
+                            colors = if (isDarkTheme) {
+                                listOf(Color(0xFFFF007F), Color(0xFFD43DFF))
+                            } else {
+                                listOf(Color(0xFF5C53FF), Color(0xFF4238FF))
+                            }
                         )
                     )
                     .clickable { onNavClicked("add") }
@@ -619,7 +670,9 @@ fun HomeBottomNavigation(
                 activeIcon = Icons.Filled.FolderOpen,
                 inactiveIcon = Icons.Outlined.FolderOpen,
                 label = "Files",
-                onClick = { onNavClicked("tasks") } // Maps to task as well
+                onClick = { onNavClicked("tasks") },
+                primaryColor = primaryColor,
+                subtextColor = subtextColor
             )
 
             // Profile Icon
@@ -628,7 +681,9 @@ fun HomeBottomNavigation(
                 activeIcon = Icons.Filled.Person,
                 inactiveIcon = Icons.Outlined.Person,
                 label = "Profile",
-                onClick = { onNavClicked("profile") }
+                onClick = { onNavClicked("profile") },
+                primaryColor = primaryColor,
+                subtextColor = subtextColor
             )
         }
     }
@@ -640,7 +695,9 @@ fun BottomNavItemComponent(
     activeIcon: androidx.compose.ui.graphics.vector.ImageVector,
     inactiveIcon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    primaryColor: Color,
+    subtextColor: Color
 ) {
     Column(
         modifier = Modifier
@@ -652,7 +709,7 @@ fun BottomNavItemComponent(
         Icon(
             imageVector = if (isSelected) activeIcon else inactiveIcon,
             contentDescription = label,
-            tint = if (isSelected) Color(0xFF5C53FF) else Color(0xFF8B8A99),
+            tint = if (isSelected) primaryColor else subtextColor,
             modifier = Modifier.size(24.dp)
         )
         if (isSelected) {
@@ -661,7 +718,7 @@ fun BottomNavItemComponent(
                 modifier = Modifier
                     .size(4.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF5C53FF))
+                    .background(primaryColor)
             )
         }
     }

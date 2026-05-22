@@ -1,8 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +27,6 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -56,8 +52,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.ProjectTask
 import com.example.ui.TaskViewModel
+import com.example.ui.theme.glowingNeonBorder
 
-// Custom local data class for Calendar slider matching screenshot
+// Custom local data class for Calendar slider
 data class CalendarDay(
     val dateString: String,
     val dayNum: String,
@@ -73,6 +70,7 @@ fun TasksScreen(
     val selectedDate by viewModel.selectedDate.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val filteredTasks by viewModel.filteredTasks.collectAsState()
+    val isDarkTheme by viewModel.isDarkTheme.collectAsState()
 
     var selectedTaskForDetails by remember { mutableStateOf<ProjectTask?>(null) }
 
@@ -94,14 +92,21 @@ fun TasksScreen(
 
     val filters = listOf("All", "To do", "In Progress", "Completed")
 
+    // Dynamic coloring driven by local model context
+    val textColor = if (isDarkTheme) Color.White else Color(0xFF1E1A3D)
+    val subtextColor = if (isDarkTheme) Color(0xFFB5B3C6) else Color(0xFF8B8A99)
+    val primaryColor = if (isDarkTheme) Color(0xFFD43DFF) else Color(0xFF5C53FF)
+
     Scaffold(
         topBar = {
             TasksHeaderBar(
                 onBackClicked = onBackClicked,
-                onNotificationClicked = {}
+                onNotificationClicked = {},
+                isDarkTheme = isDarkTheme,
+                textColor = textColor
             )
         },
-        containerColor = Color(0xFFF9FAFF)
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -122,7 +127,10 @@ fun TasksScreen(
                     CalendarDayItem(
                         day = day,
                         isSelected = isSelected,
-                        onClick = { viewModel.changeSelectedDate(day.dateString) }
+                        onClick = { viewModel.changeSelectedDate(day.dateString) },
+                        isDarkTheme = isDarkTheme,
+                        primaryColor = primaryColor,
+                        textColor = textColor
                     )
                 }
             }
@@ -150,17 +158,17 @@ fun TasksScreen(
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF5C53FF),
+                            selectedContainerColor = primaryColor,
                             selectedLabelColor = Color.White,
-                            containerColor = Color.White,
-                            labelColor = Color(0xFF8B8A99)
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            labelColor = subtextColor
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
                             selectedBorderColor = Color.Transparent,
                             disabledSelectedBorderColor = Color.Transparent,
-                            borderColor = Color(0xFFFFE0E2)
+                            borderColor = if (isDarkTheme) Color(0xFFD43DFF).copy(alpha = 0.25f) else Color(0xFFFFE0E2)
                         ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("filter_chip_$filter")
@@ -172,7 +180,7 @@ fun TasksScreen(
 
             // 3. Main Tasks Lazy Column list
             if (filteredTasks.isEmpty()) {
-                EmptyTasksDisplay()
+                EmptyTasksDisplay(textColor = textColor, subtextColor = subtextColor)
             } else {
                 LazyColumn(
                     modifier = Modifier
@@ -187,7 +195,11 @@ fun TasksScreen(
                             task = task,
                             onToggleComplete = { viewModel.toggleTaskCompletion(task) },
                             onDelete = { viewModel.deleteTask(task) },
-                            onCardClick = { selectedTaskForDetails = task }
+                            onCardClick = { selectedTaskForDetails = task },
+                            isDarkTheme = isDarkTheme,
+                            textColor = textColor,
+                            subtextColor = subtextColor,
+                            primaryColor = primaryColor
                         )
                     }
                 }
@@ -199,12 +211,14 @@ fun TasksScreen(
 @Composable
 fun TasksHeaderBar(
     onBackClicked: () -> Unit,
-    onNotificationClicked: () -> Unit
+    onNotificationClicked: () -> Unit,
+    isDarkTheme: Boolean,
+    textColor: Color
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF9FAFF))
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -216,14 +230,14 @@ fun TasksHeaderBar(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Navigate back",
-                tint = Color(0xFF1E1A3D)
+                tint = textColor
             )
         }
 
         Text(
             text = "Today's Tasks",
             style = MaterialTheme.typography.titleLarge,
-            color = Color(0xFF1E1A3D),
+            color = textColor,
             fontWeight = FontWeight.Bold
         )
 
@@ -231,13 +245,13 @@ fun TasksHeaderBar(
             onClick = onNotificationClicked,
             modifier = Modifier
                 .size(40.dp)
-                .background(Color.White, CircleShape)
+                .background(MaterialTheme.colorScheme.surface, CircleShape)
                 .clip(CircleShape)
         ) {
             Icon(
                 imageVector = Icons.Default.Notifications,
                 contentDescription = "Notifications",
-                tint = Color(0xFF1E1A3D),
+                tint = textColor,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -248,14 +262,19 @@ fun TasksHeaderBar(
 fun CalendarDayItem(
     day: CalendarDay,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isDarkTheme: Boolean,
+    primaryColor: Color,
+    textColor: Color
 ) {
     Column(
         modifier = Modifier
             .width(54.dp)
             .height(84.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(if (isSelected) Color(0xFF5C53FF) else Color.White)
+            .background(
+                if (isSelected) primaryColor else MaterialTheme.colorScheme.surface
+            )
             .clickable(onClick = onClick)
             .padding(vertical = 12.dp)
             .testTag("calendar_day_${day.dayNum}"),
@@ -266,14 +285,14 @@ fun CalendarDayItem(
             text = day.weekDay,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) Color.White.copy(alpha = 0.8f) else Color(0xFF8B8A99)
+            color = if (isSelected) Color.White.copy(alpha = 0.8f) else if (isDarkTheme) Color(0xFFB5B3C6) else Color(0xFF8B8A99)
         )
 
         Text(
             text = day.dayNum,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) Color.White else Color(0xFF1E1A3D)
+            color = if (isSelected) Color.White else textColor
         )
     }
 }
@@ -283,7 +302,11 @@ fun TaskListItemComponent(
     task: ProjectTask,
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
-    onCardClick: () -> Unit
+    onCardClick: () -> Unit,
+    isDarkTheme: Boolean,
+    textColor: Color,
+    subtextColor: Color,
+    primaryColor: Color
 ) {
     val (groupColor, flagText) = when (task.groupName) {
         "Office Project" -> Pair(Color(0xFFFB6F8B), "Office Project")
@@ -295,9 +318,10 @@ fun TaskListItemComponent(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onCardClick)
+            .glowingNeonBorder(isDarkTheme, shape = RoundedCornerShape(20.dp))
             .testTag("task_item_${task.id}"),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -314,7 +338,7 @@ fun TaskListItemComponent(
                 Icon(
                     imageVector = if (task.isCompleted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
                     contentDescription = "Toggle completion",
-                    tint = if (task.isCompleted) Color(0xFF5C53FF) else Color(0xFFECEFF1),
+                    tint = if (task.isCompleted) primaryColor else if (isDarkTheme) Color(0xFF33295C) else Color(0xFFECEFF1),
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -343,6 +367,39 @@ fun TaskListItemComponent(
                             color = groupColor
                         )
                     }
+
+                    // Soft badge priority flag
+                    Spacer(modifier = Modifier.width(8.dp))
+                    val (priorityBg, priorityTextCol, priorityLabel) = when (task.priority.uppercase()) {
+                        "HIGH" -> Triple(
+                            if (isDarkTheme) Color(0xFFFF007F).copy(alpha = 0.2f) else Color(0xFFFFEBEE),
+                            if (isDarkTheme) Color(0xFFFF529D) else Color(0xFFD32F2F),
+                            "⚠ HIGH"
+                        )
+                        "LOW" -> Triple(
+                            if (isDarkTheme) Color(0xFF00ADB5).copy(alpha = 0.2f) else Color(0xFFE8F5E9),
+                            if (isDarkTheme) Color(0xFF00ADB5) else Color(0xFF2E7D32),
+                            "⚡ LOW"
+                        )
+                        else -> Triple(
+                            if (isDarkTheme) Color(0xFFD43DFF).copy(alpha = 0.15f) else Color(0xFFFFF3E0),
+                            if (isDarkTheme) Color(0xFFE07BFF) else Color(0xFFEF6C00),
+                            "✦ MEDIUM"
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(priorityBg)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = priorityLabel,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = priorityTextCol
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -353,7 +410,7 @@ fun TaskListItemComponent(
                         textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
                     ),
                     fontWeight = FontWeight.Bold,
-                    color = if (task.isCompleted) Color(0xFF8B8A99) else Color(0xFF1E1A3D)
+                    color = if (task.isCompleted) subtextColor else textColor
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -362,14 +419,14 @@ fun TaskListItemComponent(
                     Icon(
                         imageVector = Icons.Filled.CheckCircle,
                         contentDescription = "Clock inline logo",
-                        tint = Color(0xFF8B8A99),
+                        tint = subtextColor,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Scheduled at ${task.time}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF8B8A99)
+                        color = subtextColor
                     )
                 }
             }
@@ -389,7 +446,7 @@ fun TaskListItemComponent(
 }
 
 @Composable
-fun EmptyTasksDisplay() {
+fun EmptyTasksDisplay(textColor: Color, subtextColor: Color) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -407,13 +464,13 @@ fun EmptyTasksDisplay() {
                 text = "All Tasks Completed!",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E1A3D)
+                color = textColor
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "You cleared this day out! Have a magnificent break.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF8B8A99)
+                color = subtextColor
             )
         }
     }

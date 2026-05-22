@@ -30,6 +30,23 @@ data class TaskGroupStats(
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: TaskRepository
 
+    // App theme configuration flow (Light/Dark toggle)
+    private val _isDarkTheme = MutableStateFlow(false)
+    val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
+
+    fun toggleDarkTheme() {
+        _isDarkTheme.value = !_isDarkTheme.value
+    }
+
+    private fun getPriorityValue(priority: String?): Int {
+        return when (priority?.uppercase()) {
+            "HIGH" -> 0
+            "MEDIUM" -> 1
+            "LOW" -> 2
+            else -> 3
+        }
+    }
+
     init {
         val database = TaskDatabase.getDatabase(application, viewModelScope)
         repository = TaskRepository(database.taskDao())
@@ -51,7 +68,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedFilter = MutableStateFlow("All")
     val selectedFilter: StateFlow<String> = _selectedFilter.asStateFlow()
 
-    // Tasks loaded for the active selected date, filtered by category
+    // Tasks loaded for the active selected date, filtered by category and sorted automatically by priority/urgency
     val filteredTasks: StateFlow<List<ProjectTask>> = combine(
         allTasks,
         _selectedDate,
@@ -67,7 +84,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 else -> true
             }
             matchesDate && matchesFilter
-        }
+        }.sortedBy { getPriorityValue(it.priority) }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -77,6 +94,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     // Derived: Tasks currently "In Progress" across all dates for the home horizontal bar
     val inProgressTasks: StateFlow<List<ProjectTask>> = allTasks.map { tasks ->
         tasks.filter { it.status == "IN_PROGRESS" && !it.isCompleted }
+            .sortedBy { getPriorityValue(it.priority) }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -161,7 +179,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         dateString: String,
         startDate: String,
         endDate: String,
-        logoName: String
+        logoName: String,
+        priority: String = "MEDIUM"
     ) {
         viewModelScope.launch {
             val task = ProjectTask(
@@ -174,7 +193,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 startDate = startDate,
                 endDate = endDate,
                 logoName = logoName,
-                isCompleted = false
+                isCompleted = false,
+                priority = priority
             )
             repository.insert(task)
         }

@@ -9,7 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@Database(entities = [ProjectTask::class], version = 1, exportSchema = false)
+@Database(entities = [ProjectTask::class], version = 2, exportSchema = false)
 abstract class TaskDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
 
@@ -24,6 +24,7 @@ abstract class TaskDatabase : RoomDatabase() {
                     TaskDatabase::class.java,
                     "taskio_database"
                 )
+                    .fallbackToDestructiveMigration()
                     .addCallback(TaskDatabaseCallback(scope))
                     .build()
                 INSTANCE = instance
@@ -57,7 +58,8 @@ abstract class TaskDatabase : RoomDatabase() {
                     startDate = "01 May, 2026",
                     endDate = "30 Jun, 2026",
                     logoName = "Grocery shop",
-                    isCompleted = true
+                    isCompleted = true,
+                    priority = "HIGH"
                 )
             )
             taskDao.insertTask(
@@ -71,7 +73,8 @@ abstract class TaskDatabase : RoomDatabase() {
                     startDate = "01 May, 2026",
                     endDate = "30 Jun, 2026",
                     logoName = "Grocery shop",
-                    isCompleted = false
+                    isCompleted = false,
+                    priority = "MEDIUM"
                 )
             )
             taskDao.insertTask(
@@ -85,7 +88,8 @@ abstract class TaskDatabase : RoomDatabase() {
                     startDate = "15 May, 2026",
                     endDate = "31 May, 2026",
                     logoName = "Work",
-                    isCompleted = false
+                    isCompleted = false,
+                    priority = "HIGH"
                 )
             )
 
@@ -101,7 +105,8 @@ abstract class TaskDatabase : RoomDatabase() {
                     startDate = "10 May, 2026",
                     endDate = "15 Jun, 2026",
                     logoName = "Personal",
-                    isCompleted = false
+                    isCompleted = false,
+                    priority = "LOW"
                 )
             )
             taskDao.insertTask(
@@ -115,7 +120,8 @@ abstract class TaskDatabase : RoomDatabase() {
                     startDate = "10 May, 2026",
                     endDate = "15 Jun, 2026",
                     logoName = "Personal",
-                    isCompleted = true
+                    isCompleted = true,
+                    priority = "MEDIUM"
                 )
             )
 
@@ -131,7 +137,8 @@ abstract class TaskDatabase : RoomDatabase() {
                     startDate = "01 May, 2026",
                     endDate = "31 Dec, 2026",
                     logoName = "Study",
-                    isCompleted = true
+                    isCompleted = true,
+                    priority = "LOW"
                 )
             )
             taskDao.insertTask(
@@ -145,7 +152,8 @@ abstract class TaskDatabase : RoomDatabase() {
                     startDate = "01 May, 2026",
                     endDate = "31 Dec, 2026",
                     logoName = "Study",
-                    isCompleted = false
+                    isCompleted = false,
+                    priority = "HIGH"
                 )
             )
         }

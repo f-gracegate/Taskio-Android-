@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -25,12 +27,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
-                // Initialize modern reactive task view model
-                val taskViewModel: TaskViewModel = viewModel(
-                    factory = TaskViewModelFactory(application)
-                )
+            // Initialize modern reactive task view model
+            val taskViewModel: TaskViewModel = viewModel(
+                factory = TaskViewModelFactory(application)
+            )
+            val isDarkTheme by taskViewModel.isDarkTheme.collectAsState()
 
+            MyApplicationTheme(darkTheme = isDarkTheme) {
                 TaskioAppNavigation(viewModel = taskViewModel)
             }
         }

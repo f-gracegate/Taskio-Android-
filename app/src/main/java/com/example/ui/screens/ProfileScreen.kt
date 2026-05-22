@@ -17,17 +17,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.CorporateFare
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.TaskViewModel
+import com.example.ui.theme.glowingNeonBorder
 
 @Composable
 fun ProfileScreen(
@@ -53,6 +55,13 @@ fun ProfileScreen(
     val allTasks by viewModel.allTasks.collectAsState()
     val completedCount = allTasks.count { it.isCompleted || it.status == "COMPLETED" }
     val totalCount = allTasks.size
+    val isDarkTheme by viewModel.isDarkTheme.collectAsState()
+
+    // Dynamic styling colors matching Theme definitions
+    val textColor = if (isDarkTheme) Color.White else Color(0xFF1E1A3D)
+    val subtextColor = if (isDarkTheme) Color(0xFFB5B3C6) else Color(0xFF8B8A99)
+    val cardBgColor = MaterialTheme.colorScheme.surface
+    val dividerColor = if (isDarkTheme) Color(0xFFD43DFF).copy(alpha = 0.25f) else Color(0xFFF1F1F5)
 
     Scaffold(
         bottomBar = {
@@ -65,10 +74,13 @@ fun ProfileScreen(
                         "add" -> onNavigateToAddProject()
                         "profile" -> { /* No op */ }
                     }
-                }
+                },
+                isDarkTheme = isDarkTheme,
+                primaryColor = if (isDarkTheme) Color(0xFFD43DFF) else Color(0xFF5C53FF),
+                subtextColor = subtextColor
             )
         },
-        containerColor = Color(0xFFF9FAFF)
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -82,15 +94,15 @@ fun ProfileScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp),
+                        .padding(vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "My Workspace Profile",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E1A3D),
-                        modifier = Modifier.padding(bottom = 24.dp)
+                        color = textColor,
+                        modifier = Modifier.padding(bottom = 20.dp)
                     )
 
                     Box(
@@ -98,14 +110,14 @@ fun ProfileScreen(
                             .size(100.dp)
                             .shadow(8.dp, CircleShape)
                             .clip(CircleShape)
-                            .background(Color(0xFFEEECFF)),
+                            .background(if (isDarkTheme) Color(0xFFD43DFF).copy(alpha = 0.2f) else Color(0xFFEEECFF)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "GG",
                             fontSize = 36.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF5C53FF)
+                            color = if (isDarkTheme) Color(0xFFFF007F) else Color(0xFF5C53FF)
                         )
                     }
 
@@ -115,31 +127,94 @@ fun ProfileScreen(
                         text = "GraceGate",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 22.sp),
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E1A3D)
+                        color = textColor
                     )
 
                     Text(
                         text = "Lead Creative Designer",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF8B8A99)
+                        color = subtextColor
                     )
                 }
             }
 
-            // 2. Analytic Stats row (Real calculations from SQLite!)
+            // 2. Beautiful Theme Configuration Switch Toggle
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp)
+                        .glowingNeonBorder(isDarkTheme, shape = RoundedCornerShape(24.dp)),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardBgColor),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isDarkTheme) Color(0xFFFF007F).copy(alpha = 0.15f) else Color(0xFFEEECFF)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (isDarkTheme) "🌌" else "☀️",
+                                    fontSize = 20.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = "Workspace Theme",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textColor
+                                )
+                                Text(
+                                    text = if (isDarkTheme) "Midnight Neon Mode" else "Radiant Light Mode",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isDarkTheme) Color(0xFFFFB2D4) else Color(0xFF8B8A99)
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = isDarkTheme,
+                            onCheckedChange = { viewModel.toggleDarkTheme() },
+                            modifier = Modifier.testTag("theme_switch"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color(0xFFFF007F),
+                                checkedTrackColor = Color(0xFFD43DFF).copy(alpha = 0.5f),
+                                uncheckedThumbColor = Color(0xFF8B8A99),
+                                uncheckedTrackColor = Color(0xFFECEFF1)
+                            )
+                        )
+                    }
+                }
+            }
+
+            // 3. Analytic Stats row (Real calculations from SQLite!)
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
+                        .padding(vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Card(
                         modifier = Modifier
                             .weight(1f)
-                            .height(100.dp),
+                            .height(100.dp)
+                            .glowingNeonBorder(isDarkTheme, shape = RoundedCornerShape(20.dp)),
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = cardBgColor),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(
@@ -153,13 +228,13 @@ fun ProfileScreen(
                                 text = "$completedCount",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF5C53FF)
+                                color = if (isDarkTheme) Color(0xFFD43DFF) else Color(0xFF5C53FF)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Tasks Cleared",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF8B8A99)
+                                color = subtextColor
                             )
                         }
                     }
@@ -167,9 +242,10 @@ fun ProfileScreen(
                     Card(
                         modifier = Modifier
                             .weight(1f)
-                            .height(100.dp),
+                            .height(100.dp)
+                            .glowingNeonBorder(isDarkTheme, shape = RoundedCornerShape(20.dp)),
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = cardBgColor),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(
@@ -183,51 +259,65 @@ fun ProfileScreen(
                                 text = "$totalCount",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFFB6F8B)
+                                color = if (isDarkTheme) Color(0xFFFF007F) else Color(0xFFFB6F8B)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Total Assigned",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF8B8A99)
+                                color = subtextColor
                             )
                         }
                     }
                 }
             }
 
-            // 3. Info Details rows
+            // 4. Info Details rows
             item {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .glowingNeonBorder(isDarkTheme, shape = RoundedCornerShape(24.dp)),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = cardBgColor),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         ProfileInfoRow(
                             icon = Icons.Default.Email,
                             label = "Email Address",
-                            value = "grace.gate@design.com"
+                            value = "grace.gate@design.com",
+                            isDarkTheme = isDarkTheme,
+                            textColor = textColor,
+                            subtextColor = subtextColor
                         )
-                        Divider(modifier = Modifier.padding(vertical = 14.dp), color = Color(0xFFF1F1F5))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = dividerColor)
                         ProfileInfoRow(
                             icon = Icons.Default.CorporateFare,
                             label = "Company Team",
-                            value = "Uber Eats & Super Shop Squad"
+                            value = "Uber Eats & Super Shop Squad",
+                            isDarkTheme = isDarkTheme,
+                            textColor = textColor,
+                            subtextColor = subtextColor
                         )
-                        Divider(modifier = Modifier.padding(vertical = 14.dp), color = Color(0xFFF1F1F5))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = dividerColor)
                         ProfileInfoRow(
                             icon = Icons.Default.Groups,
                             label = "Membership Level",
-                            value = "Lead Workspace Moderator"
+                            value = "Lead Workspace Moderator",
+                            isDarkTheme = isDarkTheme,
+                            textColor = textColor,
+                            subtextColor = subtextColor
                         )
-                        Divider(modifier = Modifier.padding(vertical = 14.dp), color = Color(0xFFF1F1F5))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = dividerColor)
                         ProfileInfoRow(
                             icon = Icons.Default.WorkspacePremium,
                             label = "Productivity Badge",
-                            value = "Elite Sprint Planner 🏆"
+                            value = "Elite Sprint Planner 🏆",
+                            isDarkTheme = isDarkTheme,
+                            textColor = textColor,
+                            subtextColor = subtextColor
                         )
                     }
                 }
@@ -240,7 +330,10 @@ fun ProfileScreen(
 fun ProfileInfoRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    value: String
+    value: String,
+    isDarkTheme: Boolean,
+    textColor: Color,
+    subtextColor: Color
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -250,13 +343,13 @@ fun ProfileInfoRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFFEEECFF)),
+                .background(if (isDarkTheme) Color(0xFFD43DFF).copy(alpha = 0.15f) else Color(0xFFEEECFF)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color(0xFF5C53FF),
+                tint = if (isDarkTheme) Color(0xFFD43DFF) else Color(0xFF5C53FF),
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -265,14 +358,14 @@ fun ProfileInfoRow(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF8B8A99)
+                color = subtextColor
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E1A3D)
+                color = textColor
             )
         }
     }

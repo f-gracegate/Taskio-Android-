@@ -16,5 +16,6 @@ data class ProjectTask(
     val startDate: String = "01 May, 2026",
     val endDate: String = "30 Jun, 2026",
     val logoName: String = "Grocery shop", // Used for drawing logo icons: "Grocery", "Work", "Study", etc.
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val priority: String = "MEDIUM" // "HIGH", "MEDIUM", "LOW"
 ) : Serializable
